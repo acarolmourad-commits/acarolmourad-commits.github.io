@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 <url><loc>https://acarolmourad-commits.github.io/</loc><priority>1.0</priority></url>
-<url><loc>https://acarolmourad-commits.github.io/asf-app/</loc><priority>0.9</priority></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-app/</loc></url>
 <url><loc>https://acarolmourad-commits.github.io/asf-ranking/</loc></url>
 <url><loc>https://acarolmourad-commits.github.io/asf-praias/</loc></url>
 <url><loc>https://acarolmourad-commits.github.io/asf-previsao/</loc></url>
@@ -52,5 +52,4 @@
 <url><loc>https://acarolmourad-commits.github.io/asf-podcast/</loc></url>
 <url><loc>https://acarolmourad-commits.github.io/asf-sono/</loc></url>
 <url><loc>https://acarolmourad-commits.github.io/asf-patrocinio/</loc></url>
-<url><loc>https://acarolmourad-commits.github.io/asf-patrocinio/media-kit.html</loc></url>
 </urlset>
