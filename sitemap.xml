@@ -1,42 +1,56 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://acarolmourad-commits.github.io/</loc><lastmod>2026-09-17</lastmod><priority>1.0</priority></url>
-  <url><loc>https://acarolmourad-commits.github.io/asf-app/</loc><lastmod>2026-09-17</lastmod><priority>0.9</priority></url>
-  <url><loc>https://acarolmourad-commits.github.io/asf-app/satellites.html</loc><lastmod>2026-09-17</lastmod><priority>0.9</priority></url>
-  <url><loc>https://acarolmourad-commits.github.io/asf-achados/</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
-  <url><loc>https://acarolmourad-commits.github.io/asf-alerta/</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
-  <url><loc>https://acarolmourad-commits.github.io/asf-apnea/</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
-  <url><loc>https://acarolmourad-commits.github.io/asf-bemestar/</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
-  <url><loc>https://acarolmourad-commits.github.io/asf-carona/</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
-  <url><loc>https://acarolmourad-commits.github.io/asf-comunidade/</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
-  <url><loc>https://acarolmourad-commits.github.io/asf-desafios/</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
-  <url><loc>https://acarolmourad-commits.github.io/asf-diario/</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
-  <url><loc>https://acarolmourad-commits.github.io/asf-eco/</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
-  <url><loc>https://acarolmourad-commits.github.io/asf-equipamento/</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
-  <url><loc>https://acarolmourad-commits.github.io/asf-eventos/</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
-  <url><loc>https://acarolmourad-commits.github.io/asf-filmes/</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
-  <url><loc>https://acarolmourad-commits.github.io/asf-galeria/</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
-  <url><loc>https://acarolmourad-commits.github.io/asf-glossario/</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
-  <url><loc>https://acarolmourad-commits.github.io/asf-goldenhour/</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
-  <url><loc>https://acarolmourad-commits.github.io/asf-historia/</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
-  <url><loc>https://acarolmourad-commits.github.io/asf-kids/</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
-  <url><loc>https://acarolmourad-commits.github.io/asf-manobras/</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
-  <url><loc>https://acarolmourad-commits.github.io/asf-mapa/</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
-  <url><loc>https://acarolmourad-commits.github.io/asf-mare/</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
-  <url><loc>https://acarolmourad-commits.github.io/asf-mental/</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
-  <url><loc>https://acarolmourad-commits.github.io/asf-mercado/</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
-  <url><loc>https://acarolmourad-commits.github.io/asf-nutricao/</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
-  <url><loc>https://acarolmourad-commits.github.io/asf-parceiras/</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
-  <url><loc>https://acarolmourad-commits.github.io/asf-podcast/</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
-  <url><loc>https://acarolmourad-commits.github.io/asf-praias/</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
-  <url><loc>https://acarolmourad-commits.github.io/asf-previsao/</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
-  <url><loc>https://acarolmourad-commits.github.io/asf-quiz/</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
-  <url><loc>https://acarolmourad-commits.github.io/asf-ranking/</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
-  <url><loc>https://acarolmourad-commits.github.io/asf-respira/</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
-  <url><loc>https://acarolmourad-commits.github.io/asf-seguranca/</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
-  <url><loc>https://acarolmourad-commits.github.io/asf-sos/</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
-  <url><loc>https://acarolmourad-commits.github.io/asf-treino/</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
-  <url><loc>https://acarolmourad-commits.github.io/asf-viagens/</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
-  <url><loc>https://acarolmourad-commits.github.io/asf-volume/</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
-  <url><loc>https://acarolmourad-commits.github.io/asf-yoga/</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
+<url><loc>https://acarolmourad-commits.github.io/</loc><priority>1.0</priority></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-app/</loc><priority>0.9</priority></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-ranking/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-praias/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-previsao/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-seguranca/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-sos/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-treino/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-yoga/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-respira/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-mental/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-bemestar/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-nutricao/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-diario/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-quiz/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-kids/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-comunidade/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-eventos/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-glossario/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-historia/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-equipamento/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-volume/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-viagens/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-eco/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-alerta/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-apnea/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-carona/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-clube/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-desafio/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-galeria/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-goldenhour/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-leitura/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-manobras/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-mapa/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-mare/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-mentorias/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-mercado/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-parceiras/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-ponto/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-popup/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-sonhos/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-achados/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-atlas/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-checklist/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-desafios/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-filmes/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-inspiracao/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-mala/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-memoria/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-podcast/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-sono/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-patrocinio/</loc></url>
+<url><loc>https://acarolmourad-commits.github.io/asf-patrocinio/media-kit.html</loc></url>
 </urlset>
