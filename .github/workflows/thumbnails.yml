@@ -1,0 +1,23 @@
+name: Generate OG thumbnails
+on:
+  workflow_dispatch:
+  push:
+    paths: ['tools/gen_thumbs.sh']
+permissions:
+  contents: write
+jobs:
+  thumbs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ImageMagick
+        run: sudo apt-get update && sudo apt-get install -y imagemagick
+      - name: Generate thumbnails
+        run: bash tools/gen_thumbs.sh
+      - name: Commit thumbnails
+        run: |
+          git config user.name "ASF Bot"
+          git config user.email "asf.surffeminino@gmail.com"
+          git add thumbnails/
+          git commit -m "chore: regenerate OG thumbnails [skip ci]" || echo "nothing to commit"
+          git push
