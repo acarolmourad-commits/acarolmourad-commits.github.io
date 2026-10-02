@@ -1,0 +1,54 @@
+name: SSL Cert Watch
+
+on:
+  schedule:
+    - cron: '0 13 * * *' # 10h BRT (13h UTC)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check-certs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Gerar lista de domínios (apex + subdomínios dos repos asf-*)
+        id: domains
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          subs=$(gh api "users/${{ github.repository_owner }}/repos?per_page=100" --paginate \
+            --jq '.[].name | select(startswith("asf-")) | sub("^asf-";"") + ".asf.surf"')
+          domains=$(printf "asf.surf\n%s" "$subs" | sort -u)
+          echo "$domains" > domains.txt
+          echo "Total: $(wc -l < domains.txt) domínios"
+
+      - name: Checar certificado SSL de cada domínio
+        run: |
+          ok=0; pend=0; fail=0
+          echo "| Domínio | Certificado | Status HTTPS |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|---|" >> $GITHUB_STEP_SUMMARY
+          while read -r d; do
+            [ -z "$d" ] && continue
+            cn=$(echo | timeout 15 openssl s_client -connect "$d:443" -servername "$d" 2>/dev/null \
+                 | openssl x509 -noout -subject 2>/dev/null | sed 's/.*CN *= *//')
+            if [ -z "$cn" ]; then
+              echo "| $d | ❌ sem resposta TLS | 🔴 falha |" >> $GITHUB_STEP_SUMMARY
+              fail=$((fail+1)); continue
+            fi
+            if echo "$cn" | grep -q "github.io"; then
+              echo "| $d | ⚠️ \`$cn\` (cert do GitHub, próprio ainda não emitido) | 🟡 pendente |" >> $GITHUB_STEP_SUMMARY
+              pend=$((pend+1))
+            else
+              code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://$d" || echo 000)
+              echo "| $d | ✅ \`$cn\` | 🟢 HTTP $code |" >> $GITHUB_STEP_SUMMARY
+              ok=$((ok+1))
+            fi
+          done < domains.txt
+          {
+            echo ""
+            echo "**Resumo:** ✅ $ok com cert próprio · 🟡 $pend pendentes · 🔴 $fail falhas"
+          } >> $GITHUB_STEP_SUMMARY
+          echo "OK=$ok PENDENTES=$pend FALHAS=$fail"
+          # Falha o job apenas se houver erro de TLS (não por cert ainda em emissão)
+          [ "$fail" -eq 0 ]
