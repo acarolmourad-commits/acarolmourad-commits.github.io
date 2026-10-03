@@ -1,0 +1,66 @@
+name: SEO & Index Watch
+
+on:
+  schedule:
+    - cron: '0 14 * * *' # 11h BRT (14h UTC)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  seo-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Gerar lista de domínios
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          subs=$(gh api "users/${{ github.repository_owner }}/repos?per_page=100" --paginate \
+            --jq '.[].name | select(startswith("asf-")) | sub("^asf-";"") + ".asf.surf"')
+          printf "asf.surf\n%s" "$subs" | sort -u > domains.txt
+
+      - name: Checar sitemap.xml e robots.txt de cada domínio
+        run: |
+          sm_ok=0; rb_ok=0; miss=0
+          echo "| Domínio | sitemap.xml | robots.txt |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|---|" >> $GITHUB_STEP_SUMMARY
+          while read -r d; do
+            [ -z "$d" ] && continue
+            sm=$(curl -sk -o /dev/null -w '%{http_code}' --max-time 15 "https://$d/sitemap.xml")
+            rb=$(curl -sk -o /dev/null -w '%{http_code}' --max-time 15 "https://$d/robots.txt")
+            smi=$([ "$sm" = "200" ] && echo "✅" || echo "⚠️ $sm")
+            rbi=$([ "$rb" = "200" ] && echo "✅" || echo "⚠️ $rb")
+            [ "$sm" = "200" ] && sm_ok=$((sm_ok+1))
+            [ "$rb" = "200" ] && rb_ok=$((rb_ok+1))
+            { [ "$sm" != "200" ] || [ "$rb" != "200" ]; } && miss=$((miss+1))
+            echo "| $d | $smi | $rbi |" >> $GITHUB_STEP_SUMMARY
+          done < domains.txt
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Resumo:** sitemaps OK: $sm_ok · robots OK: $rb_ok · domínios com algo faltando: $miss" >> $GITHUB_STEP_SUMMARY
+
+      - name: Search Console — estatísticas de indexação (requer secret GOOGLE_SC_TOKEN)
+        env:
+          SC_TOKEN: ${{ secrets.GOOGLE_SC_TOKEN }}
+        run: |
+          echo "## 📈 Indexação (Google Search Console)" >> $GITHUB_STEP_SUMMARY
+          if [ -z "$SC_TOKEN" ]; then
+            echo "⚠️ Secret \`GOOGLE_SC_TOKEN\` não configurado — etapa ignorada." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Para ativar: crie um token OAuth (ou use o refresh token do projeto)" >> $GITHUB_STEP_SUMMARY
+            echo "e salve como secret \`GOOGLE_SC_TOKEN\`." >> $GITHUB_STEP_SUMMARY
+            exit 0
+          fi
+          echo "| Propriedade | Sitemaps enviados | Erros |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|---|" >> $GITHUB_STEP_SUMMARY
+          while read -r d; do
+            [ -z "$d" ] && continue
+            resp=$(curl -s --max-time 15 -H "Authorization: Bearer $SC_TOKEN" \
+              "https://www.googleapis.com/webmasters/v3/sites/sc-domain%3Aasf.surf/sitemaps" || true)
+            echo "$resp" | head -c 400
+            break # sc-domain cobre todos os subdomínios — uma chamada basta
+          done < domains.txt
+          curl -s --max-time 15 -H "Authorization: Bearer $SC_TOKEN" \
+            "https://www.googleapis.com/webmasters/v3/sites/sc-domain%3Aasf.surf/sitemaps" \
+            | jq -r '.sitemap[]? | "| \(.path) | \(.contents[0].submitted // "?") | \(.errors // 0) erros |"' \
+            >> $GITHUB_STEP_SUMMARY || echo "⚠️ Falha ao consultar API (token expirado?)" >> $GITHUB_STEP_SUMMARY
