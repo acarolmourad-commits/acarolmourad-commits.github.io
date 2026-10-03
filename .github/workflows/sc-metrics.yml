@@ -1,0 +1,70 @@
+name: SC Metrics Watch
+
+on:
+  schedule:
+    - cron: '0 15 * * 1' # segundas 12h BRT (15h UTC)
+  workflow_dispatch:
+
+permissions:
+  contents: write # precisa commitar o CSV de histórico
+
+jobs:
+  track-metrics:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Coletar métricas dos últimos 28 dias (Search Console API)
+        env:
+          SC_TOKEN: ${{ secrets.GOOGLE_SC_TOKEN }}
+        run: |
+          if [ -z "$SC_TOKEN" ]; then
+            echo "⚠️ Secret \`GOOGLE_SC_TOKEN\` não configurado." >> $GITHUB_STEP_SUMMARY
+            echo "Crie um access token OAuth com escopo webmasters.readonly e salve como secret." >> $GITHUB_STEP_SUMMARY
+            exit 0
+          fi
+          END=$(date -u -d '3 days ago' +%F)
+          START=$(date -u -d '31 days ago' +%F)
+          mkdir -p metrics
+          curl -s --max-time 20 -X POST \
+            -H "Authorization: Bearer $SC_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"startDate\":\"$START\",\"endDate\":\"$END\",\"dimensions\":[]}" \
+            "https://www.googleapis.com/webmasters/v3/sites/sc-domain%3Aasf.surf/searchAnalytics/query" \
+            > sc_response.json
+          if ! jq -e '.rows' sc_response.json > /dev/null 2>&1; then
+            echo "⚠️ API retornou erro (token expirado?):" >> $GITHUB_STEP_SUMMARY
+            jq -r '.error.message // .' sc_response.json >> $GITHUB_STEP_SUMMARY
+            exit 0
+          fi
+          row=$(jq -r '.rows[0] // {clicks:0,impressions:0,ctr:0,position:0}' sc_response.json)
+          clicks=$(echo "$row" | jq -r '.clicks')
+          imps=$(echo "$row" | jq -r '.impressions')
+          ctr=$(echo "$row" | jq -r '.ctr')
+          pos=$(echo "$row" | jq -r '.position')
+          today=$(date -u +%F)
+          # Cria cabeçalho se o arquivo não existir
+          [ -f metrics/search-console.csv ] || echo "data,janela_inicio,janela_fim,cliques,impressoes,ctr,posicao_media" > metrics/search-console.csv
+          # Evita duplicar a mesma data
+          grep -v "^$today," metrics/search-console.csv > metrics/tmp.csv || true
+          mv metrics/tmp.csv metrics/search-console.csv
+          echo "$today,$START,$END,$clicks,$imps,$ctr,$pos" >> metrics/search-console.csv
+          {
+            echo "## 📈 Evolução — sc-domain:asf.surf (janelas de 28 dias)"
+            echo ""
+            echo "| Data | Cliques | Impressões | CTR | Posição média |"
+            echo "|---|---|---|---|---|"
+            tail -n +2 metrics/search-console.csv | while IFS=, read -r dt s e c i ct p; do
+              ctr_pct=$(awk "BEGIN{printf \"%.2f%%\", $ct*100}")
+              pos_fmt=$(awk "BEGIN{printf \"%.1f\", $p}")
+              echo "| $dt | $c | $i | $ctr_pct | $pos_fmt |"
+            done
+          } >> $GITHUB_STEP_SUMMARY
+
+      - name: Commit histórico
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add metrics/search-console.csv
+          git diff --staged --quiet || git commit -m "metrics: search console $(date -u +%F)"
+          git push
