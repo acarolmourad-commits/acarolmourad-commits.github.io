@@ -13,7 +13,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Gerar lista de domínios (apex + subdomínios dos repos asf-*)
-        id: domains
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -26,6 +25,7 @@ jobs:
       - name: Checar certificado SSL de cada domínio
         run: |
           ok=0; pend=0; fail=0
+          : > ready.txt
           echo "| Domínio | Certificado | Status HTTPS |" >> $GITHUB_STEP_SUMMARY
           echo "|---|---|---|" >> $GITHUB_STEP_SUMMARY
           while read -r d; do
@@ -43,6 +43,7 @@ jobs:
               code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://$d" || echo 000)
               echo "| $d | ✅ \`$cn\` | 🟢 HTTP $code |" >> $GITHUB_STEP_SUMMARY
               ok=$((ok+1))
+              echo "$d" >> ready.txt
             fi
           done < domains.txt
           {
@@ -52,3 +53,37 @@ jobs:
           echo "OK=$ok PENDENTES=$pend FALHAS=$fail"
           # Falha o job apenas se houver erro de TLS (não por cert ainda em emissão)
           [ "$fail" -eq 0 ]
+
+      - name: Ativar Enforce HTTPS nos repos cujo certificado já saiu
+        env:
+          GH_TOKEN: ${{ secrets.PAGES_PAT }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "⚠️ Secret PAGES_PAT não configurado — etapa ignorada." >> $GITHUB_STEP_SUMMARY
+            echo "Crie um PAT com acesso aos repos e salve como secret PAGES_PAT." >> $GITHUB_STEP_SUMMARY
+            exit 0
+          fi
+          enabled=0
+          while read -r d; do
+            [ -z "$d" ] && continue
+            [ "$d" = "asf.surf" ] && repo="${OWNER}.github.io" || repo="asf-${d%.asf.surf}"
+            # Só ativa se ainda não estiver ativo
+            current=$(gh api "repos/$OWNER/$repo/pages" --jq '.https_enforced' 2>/dev/null || echo "erro")
+            if [ "$current" = "true" ]; then
+              echo "⏭️  $repo: Enforce HTTPS já ativo"
+              continue
+            fi
+            if [ "$current" = "erro" ]; then
+              echo "⚠️  $repo: não foi possível ler Pages (repo sem Pages ou sem permissão)"
+              continue
+            fi
+            if gh api -X PUT "repos/$OWNER/$repo/pages" -f https_enforced=true > /dev/null 2>&1; then
+              echo "🔒 $repo: Enforce HTTPS ATIVADO ($d)"
+              echo "- 🔒 \`$d\` → Enforce HTTPS ativado" >> $GITHUB_STEP_SUMMARY
+              enabled=$((enabled+1))
+            else
+              echo "❌ $repo: falha ao ativar"
+            fi
+          done < ready.txt
+          echo "Total ativados nesta execução: $enabled"
