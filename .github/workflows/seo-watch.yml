@@ -23,6 +23,7 @@ jobs:
       - name: Checar sitemap.xml e robots.txt de cada domínio
         run: |
           sm_ok=0; rb_ok=0; miss=0
+          : > sitemaps_ok.txt
           echo "| Domínio | sitemap.xml | robots.txt |" >> $GITHUB_STEP_SUMMARY
           echo "|---|---|---|" >> $GITHUB_STEP_SUMMARY
           while read -r d; do
@@ -31,13 +32,44 @@ jobs:
             rb=$(curl -sk -o /dev/null -w '%{http_code}' --max-time 15 "https://$d/robots.txt")
             smi=$([ "$sm" = "200" ] && echo "✅" || echo "⚠️ $sm")
             rbi=$([ "$rb" = "200" ] && echo "✅" || echo "⚠️ $rb")
-            [ "$sm" = "200" ] && sm_ok=$((sm_ok+1))
+            if [ "$sm" = "200" ]; then
+              sm_ok=$((sm_ok+1))
+              echo "$d" >> sitemaps_ok.txt
+            fi
             [ "$rb" = "200" ] && rb_ok=$((rb_ok+1))
             { [ "$sm" != "200" ] || [ "$rb" != "200" ]; } && miss=$((miss+1))
             echo "| $d | $smi | $rbi |" >> $GITHUB_STEP_SUMMARY
           done < domains.txt
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Resumo:** sitemaps OK: $sm_ok · robots OK: $rb_ok · domínios com algo faltando: $miss" >> $GITHUB_STEP_SUMMARY
+
+      - name: Reenviar sitemaps ao Search Console (sc-domain:asf.surf)
+        env:
+          SC_TOKEN: ${{ secrets.GOOGLE_SC_TOKEN }}
+        run: |
+          echo "## 📤 Reenvio de sitemaps" >> $GITHUB_STEP_SUMMARY
+          if [ -z "$SC_TOKEN" ]; then
+            echo "⚠️ Secret \`GOOGLE_SC_TOKEN\` não configurado — etapa ignorada." >> $GITHUB_STEP_SUMMARY
+            exit 0
+          fi
+          site="sc-domain%3Aasf.surf"
+          sent=0; err=0
+          while read -r d; do
+            [ -z "$d" ] && continue
+            feed=$(python3 -c "import urllib.parse;print(urllib.parse.quote('https://$d/sitemap.xml', safe=''))")
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 -X PUT \
+              -H "Authorization: Bearer $SC_TOKEN" \
+              "https://www.googleapis.com/webmasters/v3/sites/$site/sitemaps/$feed")
+            if [ "$code" = "204" ] || [ "$code" = "200" ]; then
+              echo "📤 $d/sitemap.xml reenviado"
+              sent=$((sent+1))
+            else
+              echo "❌ $d: HTTP $code"
+              err=$((err+1))
+            fi
+            sleep 1 # respeitar rate limit da API
+          done < sitemaps_ok.txt
+          echo "**Reenviados:** $sent · **Falhas:** $err" >> $GITHUB_STEP_SUMMARY
 
       - name: Search Console — estatísticas de indexação (requer secret GOOGLE_SC_TOKEN)
         env:
@@ -46,21 +78,12 @@ jobs:
           echo "## 📈 Indexação (Google Search Console)" >> $GITHUB_STEP_SUMMARY
           if [ -z "$SC_TOKEN" ]; then
             echo "⚠️ Secret \`GOOGLE_SC_TOKEN\` não configurado — etapa ignorada." >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "Para ativar: crie um token OAuth (ou use o refresh token do projeto)" >> $GITHUB_STEP_SUMMARY
-            echo "e salve como secret \`GOOGLE_SC_TOKEN\`." >> $GITHUB_STEP_SUMMARY
             exit 0
           fi
-          echo "| Propriedade | Sitemaps enviados | Erros |" >> $GITHUB_STEP_SUMMARY
+          echo "| Sitemap | Páginas enviadas | Erros |" >> $GITHUB_STEP_SUMMARY
           echo "|---|---|---|" >> $GITHUB_STEP_SUMMARY
-          while read -r d; do
-            [ -z "$d" ] && continue
-            resp=$(curl -s --max-time 15 -H "Authorization: Bearer $SC_TOKEN" \
-              "https://www.googleapis.com/webmasters/v3/sites/sc-domain%3Aasf.surf/sitemaps" || true)
-            echo "$resp" | head -c 400
-            break # sc-domain cobre todos os subdomínios — uma chamada basta
-          done < domains.txt
-          curl -s --max-time 15 -H "Authorization: Bearer $SC_TOKEN" \
+          curl -s --max-time 20 -H "Authorization: Bearer $SC_TOKEN" \
             "https://www.googleapis.com/webmasters/v3/sites/sc-domain%3Aasf.surf/sitemaps" \
-            | jq -r '.sitemap[]? | "| \(.path) | \(.contents[0].submitted // "?") | \(.errors // 0) erros |"' \
-            >> $GITHUB_STEP_SUMMARY || echo "⚠️ Falha ao consultar API (token expirado?)" >> $GITHUB_STEP_SUMMARY
+            | jq -r '.sitemap[]? | "| \(.path) | \(.contents[0].submitted // "?") | \(.errors // 0) |"' \
+            >> $GITHUB_STEP_SUMMARY \
+            || echo "⚠️ Falha ao consultar API (token expirado?)" >> $GITHUB_STEP_SUMMARY
