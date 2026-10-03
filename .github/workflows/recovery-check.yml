@@ -1,0 +1,96 @@
+name: Recovery Check D+7
+
+on:
+  schedule:
+    - cron: '0 16 10-12 10 *' # 10-12/out, 13h BRT — janela de segurança (cron não garante horário exato)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  recovery-report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Só executar a partir de 2026-10-10
+        run: |
+          today=$(date -u +%F)
+          if [ "$today" \< "2026-10-10" ]; then
+            echo "Hoje: $today — aguardando D+7 (2026-10-10). Saindo."
+            exit 0
+          fi
+          echo "EXECUTAR=sim" >> $GITHUB_ENV
+
+      - uses: actions/checkout@v4
+        if: env.EXECUTAR == 'sim'
+
+      - name: Checagem completa (SSL + uptime)
+        id: check
+        if: env.EXECUTAR == 'sim'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          subs=$(gh api "users/${{ github.repository_owner }}/repos?per_page=100" --paginate \
+            --jq '.[].name | select(startswith("asf-")) | sub("^asf-";"") + ".asf.surf"')
+          printf "asf.surf\n%s" "$subs" | sort -u > domains.txt
+          ok=0; pend=0; fail=0
+          {
+            echo "## 🔍 Relatório de Recuperação D+7 ($(date -u +%F))"
+            echo ""
+            echo "| Domínio | Certificado | HTTP |"
+            echo "|---|---|---|"
+          } > report.md
+          while read -r d; do
+            [ -z "$d" ] && continue
+            cn=$(echo | timeout 15 openssl s_client -connect "$d:443" -servername "$d" 2>/dev/null \
+                 | openssl x509 -noout -subject 2>/dev/null | sed 's/.*CN *= *//')
+            code=$(curl -sk -o /dev/null -w '%{http_code}' --max-time 15 "https://$d")
+            if [ -z "$cn" ]; then
+              echo "| $d | ❌ sem TLS | $code |" >> report.md; fail=$((fail+1))
+            elif echo "$cn" | grep -q github.io; then
+              echo "| $d | 🟡 pendente (\`$cn\`) | $code |" >> report.md; pend=$((pend+1))
+            else
+              echo "| $d | ✅ \`$cn\` | $code |" >> report.md; ok=$((ok+1))
+            fi
+          done < domains.txt
+          {
+            echo ""
+            echo "**Resumo SSL:** ✅ $ok · 🟡 $pend pendentes · 🔴 $fail falhas"
+            echo ""
+            echo "## 📈 Evolução Search Console (histórico)"
+            echo ""
+            echo '| Data | Cliques | Impressões | CTR | Posição |'
+            echo '|---|---|---|---|---|'
+            if [ -f metrics/search-console.csv ]; then
+              tail -n +2 metrics/search-console.csv | while IFS=, read -r dt s e c i ct p; do
+                echo "| $dt | $c | $i | $ct | $p |"
+              done
+            else
+              echo "| — | sem dados | (secret GOOGLE_SC_TOKEN não configurado) | — | — |"
+            fi
+            echo ""
+            echo "---"
+            echo "Baseline D0 (03/10): 0 cliques, 1 impressão. Meta: curva ascendente pós-fix de SSL."
+          } >> report.md
+          echo "OK=$ok PEND=$pend FAIL=$fail"
+
+      - name: Abrir issue com o relatório
+        if: env.EXECUTAR == 'sim'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create \
+            --repo "${{ github.repository }}" \
+            --title "🔍 Relatório de Recuperação D+7 — SSL & Indexação ($(date -u +%d/%m))" \
+            --body-file report.md
+          echo "Issue criada."
+
+      - name: Auto-destruir workflow (one-shot)
+        if: env.EXECUTAR == 'sim'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git rm -q .github/workflows/recovery-check.yml
+          git commit -m "ci: remove recovery-check (one-shot executado)"
+          git push
