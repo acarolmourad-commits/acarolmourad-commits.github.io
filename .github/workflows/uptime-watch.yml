@@ -1,0 +1,44 @@
+name: Uptime Watch
+
+on:
+  schedule:
+    - cron: '*/30 * * * *' # a cada 30 min
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  uptime:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Gerar lista de domínios
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          subs=$(gh api "users/${{ github.repository_owner }}/repos?per_page=100" --paginate \
+            --jq '.[].name | select(startswith("asf-")) | sub("^asf-";"") + ".asf.surf"')
+          printf "asf.surf\n%s" "$subs" | sort -u > domains.txt
+          echo "Monitorando $(wc -l < domains.txt) domínios"
+
+      - name: Checar uptime (HTTP)
+        run: |
+          down=0; total=0
+          echo "| Domínio | HTTP | Tempo | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|---|---|" >> $GITHUB_STEP_SUMMARY
+          while read -r d; do
+            [ -z "$d" ] && continue
+            total=$((total+1))
+            # -k: tolera cert errado enquanto os certs próprios não saem (o SSL Watch cuida disso)
+            read -r code t < <(curl -sk -o /dev/null -w '%{http_code} %{time_total}' --max-time 20 "https://$d")
+            if [ "$code" = "200" ]; then
+              echo "| $d | $code | ${t}s | 🟢 |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| $d | $code | ${t}s | 🔴 DOWN |" >> $GITHUB_STEP_SUMMARY
+              down=$((down+1))
+            fi
+          done < domains.txt
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Resumo:** $((total-down))/$total no ar" >> $GITHUB_STEP_SUMMARY
+          echo "UP=$((total-down))/$total DOWN=$down"
+          [ "$down" -eq 0 ]
