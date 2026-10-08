@@ -28,8 +28,16 @@ jobs:
           echo "|---|---|---|" >> $GITHUB_STEP_SUMMARY
           while read -r d; do
             [ -z "$d" ] && continue
-            sm=$(curl -sk -o /dev/null -w '%{http_code}' --max-time 15 "https://$d/sitemap.xml")
-            rb=$(curl -sk -o /dev/null -w '%{http_code}' --max-time 15 "https://$d/robots.txt")
+            sm=$(curl -sk -o /dev/null -w '%{http_code}' --max-time 15 "https://$d/sitemap.xml") && sm_rc=0 || sm_rc=$?
+            if [ "$sm_rc" -ne 0 ]; then
+              sm=000
+              echo "::warning::Falha de transporte em $d/sitemap.xml (curl=$sm_rc)"
+            fi
+            rb=$(curl -sk -o /dev/null -w '%{http_code}' --max-time 15 "https://$d/robots.txt") && rb_rc=0 || rb_rc=$?
+            if [ "$rb_rc" -ne 0 ]; then
+              rb=000
+              echo "::warning::Falha de transporte em $d/robots.txt (curl=$rb_rc)"
+            fi
             smi=$([ "$sm" = "200" ] && echo "✅" || echo "⚠️ $sm")
             rbi=$([ "$rb" = "200" ] && echo "✅" || echo "⚠️ $rb")
             if [ "$sm" = "200" ]; then
@@ -42,6 +50,7 @@ jobs:
           done < domains.txt
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Resumo:** sitemaps OK: $sm_ok · robots OK: $rb_ok · domínios com algo faltando: $miss" >> $GITHUB_STEP_SUMMARY
+          [ "$miss" -eq 0 ]
 
       - name: Reenviar sitemaps ao Search Console (sc-domain:asf.surf)
         env:

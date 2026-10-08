@@ -30,7 +30,12 @@ jobs:
             [ -z "$d" ] && continue
             total=$((total+1))
             # -k: tolera cert errado enquanto os certs próprios não saem (o SSL Watch cuida disso)
-            read -r code t < <(curl -sk -o /dev/null -w '%{http_code} %{time_total}' --max-time 20 "https://$d")
+            result=$(curl -sk -o /dev/null -w '%{http_code} %{time_total}' --max-time 20 "https://$d") && curl_rc=0 || curl_rc=$?
+            read -r code t <<< "$result"
+            if [ "$curl_rc" -ne 0 ]; then
+              code=000
+              echo "::warning::Falha de transporte para $d (curl=$curl_rc)"
+            fi
             if [ "$code" = "200" ]; then
               echo "| $d | $code | ${t}s | 🟢 |" >> $GITHUB_STEP_SUMMARY
             else
