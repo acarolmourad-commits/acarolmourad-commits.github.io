@@ -7,19 +7,36 @@ on:
 
 permissions:
   contents: read
+  pages: read
 
 jobs:
   seo-checks:
     runs-on: ubuntu-latest
     steps:
-      - name: Gerar lista de domínios
+      - name: Gerar lista de dominios configurados no Pages
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
         run: |
-          subs=$(gh api "users/${{ github.repository_owner }}/repos?per_page=100" --paginate \
-            --jq '.[].name | select(startswith("asf-")) | sub("^asf-";"") + ".asf.surf"')
-          printf "asf.surf\n%s\n" "$subs" | sort -u > domains.txt
-
+          repos=$(gh api "users/$OWNER/repos?per_page=100" --paginate \
+            --jq '.[].name | select(startswith("asf-"))')
+          : > domains.txt
+          while IFS= read -r repo || [ -n "$repo" ]; do
+            [ -z "$repo" ] && continue
+            domain=$(gh api "repos/$OWNER/$repo/pages" --jq '.cname // empty') || { echo "Pages lookup failed: $repo" >&2; exit 1; }
+            if [ -z "$domain" ]; then
+              echo "No custom domain configured: $repo" >&2
+              continue
+            fi
+            case "$domain" in
+              *[!a-zA-Z0-9.-]*|.*|*.) echo "Invalid custom domain for $repo" >&2; exit 1 ;;
+            esac
+            printf '%s\n' "$domain" >> domains.txt
+            echo "$repo -> $domain"
+          done <<< "$repos"
+          sort -u domains.txt -o domains.txt
+          [ -s domains.txt ] || { echo 'No configured domains found' >&2; exit 1; }
+          echo "Configured domains: $(wc -l < domains.txt)"
       - name: Checar sitemap.xml e robots.txt de cada domínio
         run: |
           sm_ok=0; rb_ok=0; miss=0; network_errors=0
