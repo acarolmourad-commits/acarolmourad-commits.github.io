@@ -18,18 +18,30 @@ jobs:
         run: |
           subs=$(gh api "users/${{ github.repository_owner }}/repos?per_page=100" --paginate \
             --jq '.[].name | select(startswith("asf-")) | sub("^asf-";"") + ".asf.surf"')
-          printf "asf.surf\n%s" "$subs" | sort -u > domains.txt
+          printf "asf.surf\n%s\n" "$subs" | sort -u > domains.txt
 
       - name: Checar sitemap.xml e robots.txt de cada domínio
         run: |
-          sm_ok=0; rb_ok=0; miss=0
+          sm_ok=0; rb_ok=0; miss=0; network_errors=0
           : > sitemaps_ok.txt
           echo "| Domínio | sitemap.xml | robots.txt |" >> $GITHUB_STEP_SUMMARY
           echo "|---|---|---|" >> $GITHUB_STEP_SUMMARY
-          while read -r d; do
+          while IFS= read -r d || [ -n "$d" ]; do
             [ -z "$d" ] && continue
-            sm=$(curl -sk -o /dev/null -w '%{http_code}' --max-time 15 "https://$d/sitemap.xml")
-            rb=$(curl -sk -o /dev/null -w '%{http_code}' --max-time 15 "https://$d/robots.txt")
+            sm_rc=0
+            sm=$(curl -sk -o /dev/null -w '%{http_code}' --max-time 15 "https://$d/sitemap.xml") || sm_rc=$?
+            if [ "$sm_rc" -ne 0 ]; then
+              sm=000
+              network_errors=$((network_errors+1))
+              echo "$d/sitemap.xml: curl_exit=$sm_rc"
+            fi
+            rb_rc=0
+            rb=$(curl -sk -o /dev/null -w '%{http_code}' --max-time 15 "https://$d/robots.txt") || rb_rc=$?
+            if [ "$rb_rc" -ne 0 ]; then
+              rb=000
+              network_errors=$((network_errors+1))
+              echo "$d/robots.txt: curl_exit=$rb_rc"
+            fi
             smi=$([ "$sm" = "200" ] && echo "✅" || echo "⚠️ $sm")
             rbi=$([ "$rb" = "200" ] && echo "✅" || echo "⚠️ $rb")
             if [ "$sm" = "200" ]; then
@@ -42,6 +54,8 @@ jobs:
           done < domains.txt
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Resumo:** sitemaps OK: $sm_ok · robots OK: $rb_ok · domínios com algo faltando: $miss" >> $GITHUB_STEP_SUMMARY
+          echo "Falhas de transporte: $network_errors" >> $GITHUB_STEP_SUMMARY
+          [ "$miss" -eq 0 ] && [ "$network_errors" -eq 0 ]
 
       - name: Reenviar sitemaps ao Search Console (sc-domain:asf.surf)
         env:
@@ -54,7 +68,7 @@ jobs:
           fi
           site="sc-domain%3Aasf.surf"
           sent=0; err=0
-          while read -r d; do
+          while IFS= read -r d || [ -n "$d" ]; do
             [ -z "$d" ] && continue
             feed=$(python3 -c "import urllib.parse;print(urllib.parse.quote('https://$d/sitemap.xml', safe=''))")
             code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 -X PUT \
