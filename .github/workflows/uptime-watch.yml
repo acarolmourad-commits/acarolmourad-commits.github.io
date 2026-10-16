@@ -26,11 +26,13 @@ jobs:
           down=0; total=0
           echo "| Domínio | HTTP | Tempo | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|---|---|---|---|" >> $GITHUB_STEP_SUMMARY
-          while read -r d; do
+          while read -r d || [ -n "$d" ]; do
             [ -z "$d" ] && continue
             total=$((total+1))
             # -k: tolera cert errado enquanto os certs próprios não saem (o SSL Watch cuida disso)
-            read -r code t < <(curl -sk -o /dev/null -w '%{http_code} %{time_total}' --max-time 20 "https://$d")
+            # Captura a saída sem depender de newline final; curl com erro de rede nao aborta o loop (bash -e).
+            out=$(curl -sk -o /dev/null -w '%{http_code} %{time_total}' --max-time 20 "https://$d" 2>/dev/null) || out="000 0"
+            code="${out%% *}"; t="${out##* }"; [ -n "$code" ] || code="000"; [ -n "$t" ] || t="0"
             if [ "$code" = "200" ]; then
               echo "| $d | $code | ${t}s | 🟢 |" >> $GITHUB_STEP_SUMMARY
             else
