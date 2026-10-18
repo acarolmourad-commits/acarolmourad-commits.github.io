@@ -16,7 +16,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          subs=$(gh api "users/${{ github.repository_owner }}/repos?per_page=100" --paginate --jq '.[].name | select(startswith("asf-")) | select(. != "asf-pr53-preview" and . != "asf-eventos" and . != "asf-app-redirect") | sub("^asf-";"") + ".asf.surf"')
+          subs=$(gh api "users/${{ github.repository_owner }}/repos?per_page=100" --paginate --jq '.[].name | select(startswith("asf-")) | select(. != "asf-pr53-preview" and . != "asf-eventos" and . != "asf-app-redirect" and . != "asf-clube") | sub("^asf-";"") + ".asf.surf"')
           printf "asf.surf\n%s" "$subs" | sort -u > domains.txt
           echo "Monitorando $(wc -l < domains.txt) domínios"
       - name: Checar uptime (HTTP)
