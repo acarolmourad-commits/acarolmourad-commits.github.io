@@ -12,30 +12,52 @@ jobs:
   uptime:
     runs-on: ubuntu-latest
     steps:
-      - name: Gerar lista de domínios
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v4
+      - name: Gerar lista de URLs reais do ecossistema
         run: |
-          subs=$(gh api "users/${{ github.repository_owner }}/repos?per_page=100" --paginate --jq '.[].name | select(startswith("asf-")) | select(. != "asf-pr53-preview" and . != "asf-eventos" and . != "asf-app-redirect" and . != "asf-clube") | sub("^asf-";"") + ".asf.surf"')
-          printf "asf.surf\n%s" "$subs" | sort -u > domains.txt
-          echo "Monitorando $(wc -l < domains.txt) domínios"
+          python3 - <<'PY'
+          import json
+          with open('asf-ecosystem.json', encoding='utf-8') as f:
+              eco = json.load(f)
+          sats = sorted({s['id'].strip() for s in eco.get('satellites', []) if s.get('id')})
+          with open('satellites.txt', 'w', encoding='utf-8') as f:
+              for sid in sats:
+                  f.write(f'https://acarolmourad-commits.github.io/{sid}/\n')
+          critical = [
+              'https://asf.surf/',
+              'https://acarolmourad-commits.github.io/',
+              'https://acarolmourad-commits.github.io/asf-app/',
+          ]
+          with open('critical.txt', 'w', encoding='utf-8') as f:
+              f.write('\n'.join(critical) + '\n')
+          print(f'Monitorando {len(critical)} URLs criticas e {len(sats)} satelites')
+          PY
       - name: Checar uptime (HTTP)
         run: |
-          down=0; total=0
-          echo "| Domínio | HTTP | Tempo | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|---|---|---|---|" >> $GITHUB_STEP_SUMMARY
-          while read -r d; do
-            [ -z "$d" ] && continue
-            total=$((total+1))
-            read -r code t < <(curl -sk -o /dev/null -w '%{http_code} %{time_total}' --max-time 20 "https://$d" || echo "000 0")
-            code=${code:-000}; t=${t:-0}
-            if [ "$code" = "200" ]; then
-              echo "| $d | $code | ${t}s | UP |" >> $GITHUB_STEP_SUMMARY
-            else
-              echo "| $d | $code | ${t}s | DOWN |" >> $GITHUB_STEP_SUMMARY
-              down=$((down+1))
-            fi
-          done < domains.txt
-          echo "**Resumo:** $((total-down))/$total no ar" >> $GITHUB_STEP_SUMMARY
-          echo "UP=$((total-down))/$total DOWN=$down"
-          [ "$down" -eq 0 ]
+          critical_down=0; sat_down=0; total=0
+          echo '| URL | HTTP | Tempo | Nivel | Status |' >> $GITHUB_STEP_SUMMARY
+          echo '|---|---|---|---|---|' >> $GITHUB_STEP_SUMMARY
+          check_file() {
+            file="$1"; level="$2"
+            while IFS= read -r url || [ -n "$url" ]; do
+              if [ -z "$url" ]; then continue; fi
+              total=$((total+1))
+              out=$(curl -sL -o /dev/null -w '%{http_code} %{time_total}' --max-time 20 "$url" || echo '000 0')
+              code=$(echo "$out" | awk '{print $1}'); t=$(echo "$out" | awk '{print $2}')
+              if [ -z "$code" ]; then code=000; fi
+              if [ -z "$t" ]; then t=0; fi
+              if [ "$code" -ge 200 ] && [ "$code" -lt 400 ]; then
+                echo "| $url | $code | ${t}s | $level | UP |" >> $GITHUB_STEP_SUMMARY
+              else
+                echo "| $url | $code | ${t}s | $level | DOWN |" >> $GITHUB_STEP_SUMMARY
+                if [ "$level" = 'critico' ]; then critical_down=$((critical_down+1)); else sat_down=$((sat_down+1)); fi
+              fi
+            done < "$file"
+          }
+          check_file critical.txt critico
+          check_file satellites.txt satelite
+          echo "**Resumo:** total=$total criticos_down=$critical_down satelites_down=$sat_down" >> $GITHUB_STEP_SUMMARY
+          echo "UP_CHECK total=$total criticos_down=$critical_down satelites_down=$sat_down"
+          if [ "$sat_down" -gt 0 ]; then echo "::warning::$sat_down satelite(s) fora do ar ou redirecionando - ver resumo. Hub critico nao afetado."; fi
+          if [ "$critical_down" -gt 0 ]; then echo "::error::$critical_down URL(s) critica(s) fora do ar."; exit 1; fi
+          echo 'Hub critico no ar.'
